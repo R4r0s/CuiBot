@@ -1,21 +1,28 @@
 import discord
 from discord.ext import commands
+from discord.utils import get
+from discord import FFmpegPCMAudio
+from youtube_dl import YoutubeDL
 from random import randint
 
 bot = commands.Bot(command_prefix="!", help_command=None)
 TOKEN = "ODkwMzYwMzM1NjgzNDI0MjU3.YUuqrg.Q68KMXR_iWESOBC9LdTLYlvQiJA"
 
+
 @bot.event
 async def on_ready():
-    custom = discord.Game("Do !help to get a lis of available commands")
+    custom = discord.Game("Do !help to get a list of available commands")
     await bot.change_presence(status=discord.Status.online, activity=custom)
 
 
 @bot.command()
 async def random(ctx, arg):
     try:
+        if int(arg) == 420:
+            await ctx.send(69)
+        else:
 
-        await ctx.send(str(randint(0, int(arg))))
+            await ctx.send(str(randint(0, int(arg))))
 
     except:
 
@@ -46,13 +53,25 @@ async def roll(ctx, arg):
 async def cuicui(ctx):
     await ctx.send("Pees itself")
 
-@bot.command()
+
+@bot.command(pass_context=True)
 async def play(ctx, arg):
     channel = ctx.author.voice.channel
     await channel.connect()
 
-    server = ctx.message.guild
-    voiceClient =  bot.voice_clients(server)
+    ybdl_options = {'format': 'bestaudio', 'noplaylist': 'True'}
+    ffmpeg_options = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
+    voice = get(bot.voice_clients, guild=ctx.guild)
+
+    if not voice.is_playing():
+        with YoutubeDL(ybdl_options) as ydl:
+            info = ydl.extract_info(arg, download=False)
+        url = info['formats'][0]['url']
+        voice.play(FFmpegPCMAudio(url, **ffmpeg_options))
+        voice.is_playing()
+    else:
+        await ctx.send("Already playing song")
+        return
 
 
 @bot.command(pass_context=True)
@@ -64,7 +83,8 @@ async def help(ctx):
     embed.set_author(name="CuiBot's Help")
     embed.add_field(name="!random", value="Returns a random number between 0 and stated number", inline=False)
     embed.add_field(name="!roll", value="Rolls a desired dice type (d4, d6, d8, d10, d12, d20 and d100)", inline=False)
-    embed.add_field(name="!cuicui", value="Sucha dirtty guinea pig", inline=False)
+    embed.add_field(name="!cuicui", value="Such a dirty guinea pig", inline=False)
+    embed.add_field(name="!play", value="Plays audio from URL", inline=False)
 
     await author.send(embed=embed)
 
