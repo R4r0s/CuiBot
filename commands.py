@@ -59,18 +59,18 @@ async def cuicui(ctx):
 @bot.command(pass_context=True)
 async def play(ctx, arg):
     try:
+        voice = get(bot.voice_clients, guild=ctx.guild)
 
         if not queue:
             queue.append(arg)
             await ctx.send("Song added to queue")
             channel = ctx.author.voice.channel
             await channel.connect()
-        ybdl_options = {'format': 'bestaudio', 'noplaylist': 'True'}
-        ffmpeg_options = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
-        voice = get(bot.voice_clients, guild=ctx.guild)
 
         if not voice.is_playing():
             while queue:
+                ybdl_options = {'format': 'bestaudio', 'noplaylist': 'True'}
+                ffmpeg_options = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
                 await ctx.send("Playing song")
                 with YoutubeDL(ybdl_options) as ydl:
                     info = ydl.extract_info(queue[0], download=False)
@@ -100,17 +100,33 @@ async def stop(ctx):
 
 
 @bot.command(pass_context=True)
+async def skip(ctx):
+    voice = get(bot.voice_clients, guild=ctx.guild)
+    if queue[0]:
+        await ctx.send("Skipping song")
+        ybdl_options = {'format': 'bestaudio', 'noplaylist': 'True'}
+        ffmpeg_options = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
+        voice.stop()
+        with YoutubeDL(ybdl_options) as ydl:
+            info = ydl.extract_info(queue[0], download=False)
+        url = info['formats'][0]['url']
+        voice.play(FFmpegPCMAudio(url, **ffmpeg_options))
+    else:
+        await ctx.send("Nothing to skip")
+
+@bot.command(pass_context=True)
 async def help(ctx):
     author = ctx.message.author
     embed = discord.Embed(
         colour=discord.Colour.purple()
     )
     embed.set_author(name="CuiBot's Help")
-    embed.add_field(name="!random", value="Returns a random number between 0 and stated number", inline=False)
-    embed.add_field(name="!roll", value="Rolls a desired dice type (d4, d6, d8, d10, d12, d20 and d100)", inline=False)
-    embed.add_field(name="!cuicui", value="Such a dirty guinea pig", inline=False)
-    embed.add_field(name="!play", value="Plays audio from URL, if currently playing adds audio tu queue", inline=False)
-    embed.add_field(name="!stop", value="Disconnects bot from channel, clears queue and stops playing audio", inline=False)
+    embed.add_field(name="!random", value="Returns a random number between 0 and stated number.", inline=False)
+    embed.add_field(name="!roll", value="Rolls a desired dice type (d4, d6, d8, d10, d12, d20 and d100).", inline=False)
+    embed.add_field(name="!cuicui", value="Such a dirty guinea pig.", inline=False)
+    embed.add_field(name="!play", value="Plays audio from URL, if currently playing adds audio tu queue.", inline=False)
+    embed.add_field(name="!stop", value="Disconnects bot from channel, clears queue and stops playing audio.", inline=False)
+    embed.add_field(name="!skip", value="Skips current song.", inline=False)
 
     await author.send(embed=embed)
 
