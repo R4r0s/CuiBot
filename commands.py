@@ -1,5 +1,6 @@
 from asyncio import sleep
-
+import requests
+import json
 import discord
 from discord.ext import commands
 from discord.utils import get
@@ -115,6 +116,18 @@ async def skip(ctx):
         await ctx.send("Nothing to skip")
 
 @bot.command(pass_context=True)
+async def joke(ctx):
+    url="https://v2.jokeapi.dev/joke/Any"
+    response = requests.get(url)
+    print(response.status_code)
+    joke_json = json.dumps(response.json())
+    print(response.json().get('setup'))
+    print(response.json().get('delivery'))
+    await ctx.send(response.json().get('setup'))
+    if response.json().get('delivery'):
+        await  ctx.send(response.json().get('delivery'))
+
+@bot.command(pass_context=True)
 async def help(ctx):
     author = ctx.message.author
     embed = discord.Embed(
@@ -127,6 +140,7 @@ async def help(ctx):
     embed.add_field(name="!play", value="Plays audio from URL, if currently playing adds audio tu queue.", inline=False)
     embed.add_field(name="!stop", value="Disconnects bot from channel, clears queue and stops playing audio.", inline=False)
     embed.add_field(name="!skip", value="Skips current song.", inline=False)
+    embed.add_field(name="!joke", value="Sends a random joke from JokeAPI (NSFW).", inline=False)
 
     await author.send(embed=embed)
 
