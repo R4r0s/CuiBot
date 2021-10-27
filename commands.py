@@ -6,6 +6,7 @@ from discord.ext import commands
 from discord.utils import get
 from discord import FFmpegPCMAudio
 from youtube_dl import YoutubeDL
+from youtube_dl import utils
 from random import randint
 
 bot = commands.Bot(command_prefix="!", help_command=None)
@@ -66,12 +67,12 @@ async def play(ctx, arg):
             await ctx.send("Song added to queue")
             channel = ctx.author.voice.channel
             await channel.connect()
-            voice = get(bot.voice_clients, guild=ctx.guild)
-
+        voice = get(bot.voice_clients, guild=ctx.guild)
+        ybdl_options = {'format': 'bestaudio', 'noplaylist': 'True'}
+        ffmpeg_options = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
         if not voice.is_playing():
             while queue:
-                ybdl_options = {'format': 'bestaudio', 'noplaylist': 'True'}
-                ffmpeg_options = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
+
                 with YoutubeDL(ybdl_options) as ydl:
                     info = ydl.extract_info(queue[0], download=False)
                 title = info.get("title", None)
@@ -79,9 +80,10 @@ async def play(ctx, arg):
                 url = info['formats'][0]['url']
                 voice.play(FFmpegPCMAudio(url, **ffmpeg_options))
                 voice.is_playing()
-                queue.pop(0)
+
                 while voice.is_playing:
                     await sleep(1)
+                queue.pop(0)
             await voice.disconnect()
 
         else:
@@ -95,6 +97,8 @@ async def play(ctx, arg):
     except AttributeError:
         await ctx.send("You are not in a voice channel")
 
+    except utils.DownloadError:
+        await ctx.send("No video has been found")
 
 @bot.command(pass_context=True, aliases=['st'])
 async def stop(ctx):
@@ -115,11 +119,12 @@ async def skip(ctx):
         ffmpeg_options = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
         voice.stop()
         with YoutubeDL(ybdl_options) as ydl:
-           info = ydl.extract_info(queue[0], download=False)
+           info = ydl.extract_info(queue[1], download=False)
         title = info.get("title", None)
         await ctx.send("Playing " + "***" + title + "***")
         url = info['formats'][0]['url']
         voice.play(FFmpegPCMAudio(url, **ffmpeg_options))
+        queue.pop(1)
         queue.pop(0)
 
 @bot.command(pass_context=True)
